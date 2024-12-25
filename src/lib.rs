@@ -147,18 +147,18 @@ struct MetaBuff {
 /// let res = vm.execute_program(mem, &mut mbuff).unwrap();
 /// assert_eq!(res, 0x2211);
 /// ```
-pub struct EbpfVmMbuff<'a> {
-    prog: Option<&'a [u8]>,
+pub struct EbpfVmMbuff {
+    prog: Option<Vec<u8>>,
     verifier: Verifier,
     #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
-    jit: Option<jit::JitMemory<'a>>,
+    jit: Option<jit::JitMemory>,
     #[cfg(feature = "cranelift")]
     cranelift_prog: Option<cranelift::CraneliftProgram>,
     helpers: HashMap<u32, ebpf::Helper>,
     allowed_memory: HashSet<u64>,
 }
 
-impl<'a> EbpfVmMbuff<'a> {
+impl EbpfVmMbuff {
     /// Create a new virtual machine instance, and load an eBPF program into that instance.
     /// When attempting to load the program, it passes through a simple verifier.
     ///
@@ -174,10 +174,13 @@ impl<'a> EbpfVmMbuff<'a> {
     /// // Instantiate a VM.
     /// let mut vm = rbpf::EbpfVmMbuff::new(Some(prog)).unwrap();
     /// ```
-    pub fn new(prog: Option<&'a [u8]>) -> Result<EbpfVmMbuff<'a>, Error> {
-        if let Some(prog) = prog {
+    pub fn new(prog: Option<&[u8]>) -> Result<EbpfVmMbuff, Error> {
+        let prog = if let Some(prog) = prog {
             verifier::check(prog)?;
-        }
+            Some(Vec::from(prog))
+        } else {
+            None
+        };
 
         Ok(EbpfVmMbuff {
             prog,
@@ -210,9 +213,9 @@ impl<'a> EbpfVmMbuff<'a> {
     /// let mut vm = rbpf::EbpfVmMbuff::new(Some(prog1)).unwrap();
     /// vm.set_program(prog2).unwrap();
     /// ```
-    pub fn set_program(&mut self, prog: &'a [u8]) -> Result<(), Error> {
+    pub fn set_program(&mut self, prog: &[u8]) -> Result<(), Error> {
         (self.verifier)(prog)?;
-        self.prog = Some(prog);
+        self.prog = Some(Vec::from(prog));
         Ok(())
     }
 
@@ -247,7 +250,7 @@ impl<'a> EbpfVmMbuff<'a> {
     /// vm.set_verifier(verifier).unwrap();
     /// ```
     pub fn set_verifier(&mut self, verifier: Verifier) -> Result<(), Error> {
-        if let Some(prog) = self.prog {
+        if let Some(prog) = &self.prog {
             verifier(prog)?;
         }
         self.verifier = verifier;
@@ -372,7 +375,13 @@ impl<'a> EbpfVmMbuff<'a> {
     /// assert_eq!(res, 0x2211);
     /// ```
     pub fn execute_program(&self, mem: &[u8], mbuff: &[u8]) -> Result<u64, Error> {
-        interpreter::execute_program(self.prog, mem, mbuff, &self.helpers, &self.allowed_memory)
+        interpreter::execute_program(
+            self.prog.as_deref(),
+            mem,
+            mbuff,
+            &self.helpers,
+            &self.allowed_memory,
+        )
     }
 
     /// JIT-compile the loaded program. No argument required for this.
@@ -396,7 +405,7 @@ impl<'a> EbpfVmMbuff<'a> {
     /// ```
     #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub fn jit_compile(&mut self) -> Result<(), Error> {
-        let prog = match self.prog {
+        let prog = match &self.prog {
             Some(prog) => prog,
             None => Err(Error::new(
                 ErrorKind::Other,
@@ -463,7 +472,7 @@ impl<'a> EbpfVmMbuff<'a> {
     pub unsafe fn execute_program_jit(
         &self,
         mem: &mut [u8],
-        mbuff: &'a mut [u8],
+        mbuff: &mut [u8],
     ) -> Result<u64, Error> {
         // If packet data is empty, do not send the address of an empty slice; send a null pointer
         //  as first argument instead, as this is uBPF's behavior (empty packet should not happen
@@ -515,7 +524,7 @@ impl<'a> EbpfVmMbuff<'a> {
     pub fn cranelift_compile(&mut self) -> Result<(), Error> {
         use crate::cranelift::CraneliftCompiler;
 
-        let prog = match self.prog {
+        let prog = match &self.prog {
             Some(prog) => prog,
             None => Err(Error::new(
                 ErrorKind::Other,
@@ -574,7 +583,7 @@ impl<'a> EbpfVmMbuff<'a> {
     pub fn execute_program_cranelift(
         &self,
         mem: &mut [u8],
-        mbuff: &'a mut [u8],
+        mbuff: &mut [u8],
     ) -> Result<u64, Error> {
         // If packet data is empty, do not send the address of an empty slice; send a null pointer
         //  as first argument instead, as this is uBPF's behavior (empty packet should not happen
@@ -667,12 +676,12 @@ impl<'a> EbpfVmMbuff<'a> {
 /// let res = vm.execute_program(mem2).unwrap();
 /// assert_eq!(res, 0x27);
 /// ```
-pub struct EbpfVmFixedMbuff<'a> {
-    parent: EbpfVmMbuff<'a>,
+pub struct EbpfVmFixedMbuff {
+    parent: EbpfVmMbuff,
     mbuff: MetaBuff,
 }
 
-impl<'a> EbpfVmFixedMbuff<'a> {
+impl EbpfVmFixedMbuff {
     /// Create a new virtual machine instance, and load an eBPF program into that instance.
     /// When attempting to load the program, it passes through a simple verifier.
     ///
@@ -693,10 +702,10 @@ impl<'a> EbpfVmFixedMbuff<'a> {
     /// let mut vm = rbpf::EbpfVmFixedMbuff::new(Some(prog), 0x40, 0x50).unwrap();
     /// ```
     pub fn new(
-        prog: Option<&'a [u8]>,
+        prog: Option<&[u8]>,
         data_offset: usize,
         data_end_offset: usize,
-    ) -> Result<EbpfVmFixedMbuff<'a>, Error> {
+    ) -> Result<EbpfVmFixedMbuff, Error> {
         let parent = EbpfVmMbuff::new(prog)?;
         let get_buff_len = |x: usize, y: usize| if x >= y { x + 8 } else { y + 8 };
         let buffer = vec![0u8; get_buff_len(data_offset, data_end_offset)];
@@ -742,7 +751,7 @@ impl<'a> EbpfVmFixedMbuff<'a> {
     /// ```
     pub fn set_program(
         &mut self,
-        prog: &'a [u8],
+        prog: &[u8],
         data_offset: usize,
         data_end_offset: usize,
     ) -> Result<(), Error> {
@@ -909,7 +918,7 @@ impl<'a> EbpfVmFixedMbuff<'a> {
     /// let res = vm.execute_program(mem).unwrap();
     /// assert_eq!(res, 0xdd);
     /// ```
-    pub fn execute_program(&mut self, mem: &'a mut [u8]) -> Result<u64, Error> {
+    pub fn execute_program(&mut self, mem: &mut [u8]) -> Result<u64, Error> {
         let l = self.mbuff.buffer.len();
         // Can this ever happen? Probably not, should be ensured at mbuff creation.
         if self.mbuff.data_offset + 8 > l || self.mbuff.data_end_offset + 8 > l {
@@ -952,7 +961,7 @@ impl<'a> EbpfVmFixedMbuff<'a> {
     /// ```
     #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub fn jit_compile(&mut self) -> Result<(), Error> {
-        let prog = match self.parent.prog {
+        let prog = match &self.parent.prog {
             Some(prog) => prog,
             None => Err(Error::new(
                 ErrorKind::Other,
@@ -1012,7 +1021,7 @@ impl<'a> EbpfVmFixedMbuff<'a> {
     // This struct redefines the `execute_program_jit()` function, in order to pass the offsets
     // associated with the fixed mbuff.
     #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
-    pub unsafe fn execute_program_jit(&mut self, mem: &'a mut [u8]) -> Result<u64, Error> {
+    pub unsafe fn execute_program_jit(&mut self, mem: &mut [u8]) -> Result<u64, Error> {
         // If packet data is empty, do not send the address of an empty slice; send a null pointer
         //  as first argument instead, as this is uBPF's behavior (empty packet should not happen
         //  in the kernel; anyway the verifier would prevent the use of uninitialized registers).
@@ -1065,7 +1074,7 @@ impl<'a> EbpfVmFixedMbuff<'a> {
     pub fn cranelift_compile(&mut self) -> Result<(), Error> {
         use crate::cranelift::CraneliftCompiler;
 
-        let prog = match self.parent.prog {
+        let prog = match &self.parent.prog {
             Some(prog) => prog,
             None => Err(Error::new(
                 ErrorKind::Other,
@@ -1114,7 +1123,7 @@ impl<'a> EbpfVmFixedMbuff<'a> {
     /// assert_eq!(res, 0xdd);
     /// ```
     #[cfg(feature = "cranelift")]
-    pub fn execute_program_cranelift(&mut self, mem: &'a mut [u8]) -> Result<u64, Error> {
+    pub fn execute_program_cranelift(&mut self, mem: &mut [u8]) -> Result<u64, Error> {
         // If packet data is empty, do not send the address of an empty slice; send a null pointer
         //  as first argument instead, as this is uBPF's behavior (empty packet should not happen
         //  in the kernel; anyway the verifier would prevent the use of uninitialized registers).
@@ -1177,11 +1186,11 @@ impl<'a> EbpfVmFixedMbuff<'a> {
 /// let res = vm.execute_program(mem).unwrap();
 /// assert_eq!(res, 0x22cc);
 /// ```
-pub struct EbpfVmRaw<'a> {
-    parent: EbpfVmMbuff<'a>,
+pub struct EbpfVmRaw {
+    parent: EbpfVmMbuff,
 }
 
-impl<'a> EbpfVmRaw<'a> {
+impl EbpfVmRaw {
     /// Create a new virtual machine instance, and load an eBPF program into that instance.
     /// When attempting to load the program, it passes through a simple verifier.
     ///
@@ -1198,7 +1207,7 @@ impl<'a> EbpfVmRaw<'a> {
     /// // Instantiate a VM.
     /// let vm = rbpf::EbpfVmRaw::new(Some(prog)).unwrap();
     /// ```
-    pub fn new(prog: Option<&'a [u8]>) -> Result<EbpfVmRaw<'a>, Error> {
+    pub fn new(prog: Option<&[u8]>) -> Result<EbpfVmRaw, Error> {
         let parent = EbpfVmMbuff::new(prog)?;
         Ok(EbpfVmRaw { parent })
     }
@@ -1229,7 +1238,7 @@ impl<'a> EbpfVmRaw<'a> {
     /// let res = vm.execute_program(mem).unwrap();
     /// assert_eq!(res, 0x22cc);
     /// ```
-    pub fn set_program(&mut self, prog: &'a [u8]) -> Result<(), Error> {
+    pub fn set_program(&mut self, prog: &[u8]) -> Result<(), Error> {
         self.parent.set_program(prog)?;
         Ok(())
     }
@@ -1372,7 +1381,7 @@ impl<'a> EbpfVmRaw<'a> {
     /// let res = vm.execute_program(mem).unwrap();
     /// assert_eq!(res, 0x22cc);
     /// ```
-    pub fn execute_program(&self, mem: &'a mut [u8]) -> Result<u64, Error> {
+    pub fn execute_program(&self, mem: &mut [u8]) -> Result<u64, Error> {
         self.parent.execute_program(mem, &[])
     }
 
@@ -1397,7 +1406,7 @@ impl<'a> EbpfVmRaw<'a> {
     /// ```
     #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub fn jit_compile(&mut self) -> Result<(), Error> {
-        let prog = match self.parent.prog {
+        let prog = match &self.parent.prog {
             Some(prog) => prog,
             None => Err(Error::new(
                 ErrorKind::Other,
@@ -1451,7 +1460,7 @@ impl<'a> EbpfVmRaw<'a> {
     /// }
     /// ```
     #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
-    pub unsafe fn execute_program_jit(&self, mem: &'a mut [u8]) -> Result<u64, Error> {
+    pub unsafe fn execute_program_jit(&self, mem: &mut [u8]) -> Result<u64, Error> {
         let mut mbuff = vec![];
         self.parent.execute_program_jit(mem, &mut mbuff)
     }
@@ -1479,7 +1488,7 @@ impl<'a> EbpfVmRaw<'a> {
     pub fn cranelift_compile(&mut self) -> Result<(), Error> {
         use crate::cranelift::CraneliftCompiler;
 
-        let prog = match self.parent.prog {
+        let prog = match &self.parent.prog {
             Some(prog) => prog,
             None => Err(Error::new(
                 ErrorKind::Other,
@@ -1519,7 +1528,7 @@ impl<'a> EbpfVmRaw<'a> {
     /// assert_eq!(res, 0x22cc);
     /// ```
     #[cfg(feature = "cranelift")]
-    pub fn execute_program_cranelift(&self, mem: &'a mut [u8]) -> Result<u64, Error> {
+    pub fn execute_program_cranelift(&self, mem: &mut [u8]) -> Result<u64, Error> {
         let mut mbuff = vec![];
         self.parent.execute_program_cranelift(mem, &mut mbuff)
     }
@@ -1564,11 +1573,11 @@ impl<'a> EbpfVmRaw<'a> {
 /// let res = vm.execute_program().unwrap();
 /// assert_eq!(res, 0x11);
 /// ```
-pub struct EbpfVmNoData<'a> {
-    parent: EbpfVmRaw<'a>,
+pub struct EbpfVmNoData {
+    parent: EbpfVmRaw,
 }
 
-impl<'a> EbpfVmNoData<'a> {
+impl EbpfVmNoData {
     /// Create a new virtual machine instance, and load an eBPF program into that instance.
     /// When attempting to load the program, it passes through a simple verifier.
     ///
@@ -1584,7 +1593,7 @@ impl<'a> EbpfVmNoData<'a> {
     /// // Instantiate a VM.
     /// let vm = rbpf::EbpfVmNoData::new(Some(prog));
     /// ```
-    pub fn new(prog: Option<&'a [u8]>) -> Result<EbpfVmNoData<'a>, Error> {
+    pub fn new(prog: Option<&[u8]>) -> Result<EbpfVmNoData, Error> {
         let parent = EbpfVmRaw::new(prog)?;
         Ok(EbpfVmNoData { parent })
     }
@@ -1614,7 +1623,7 @@ impl<'a> EbpfVmNoData<'a> {
     /// let res = vm.execute_program().unwrap();
     /// assert_eq!(res, 0x1122);
     /// ```
-    pub fn set_program(&mut self, prog: &'a [u8]) -> Result<(), Error> {
+    pub fn set_program(&mut self, prog: &[u8]) -> Result<(), Error> {
         self.parent.set_program(prog)?;
         Ok(())
     }

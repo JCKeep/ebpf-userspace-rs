@@ -60,7 +60,7 @@ fn map_register(r: u8) -> u8 {
 macro_rules! emit_bytes {
     ( $mem:ident, $data:tt, $t:ty ) => {{
         let size = mem::size_of::<$t>() as usize;
-        assert!($mem.offset + size <= $mem.contents.len());
+        assert!($mem.offset + size <= $mem.layout.size());
         unsafe {
             let ptr = $mem.contents.as_ptr().add($mem.offset) as *mut $t;
             ptr.write_unaligned($data);

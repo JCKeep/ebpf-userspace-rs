@@ -7,6 +7,8 @@
 
 #![allow(clippy::single_match)]
 
+use core::ptr::NonNull;
+use core::slice;
 use std::alloc;
 use std::collections::HashMap;
 use std::fmt::Error as FormatterError;
@@ -42,19 +44,19 @@ enum OperandSize {
     S64 = 64,
 }
 
-pub struct JitMemory<'a> {
-    contents: &'a mut [u8],
+pub struct JitMemory {
+    contents: NonNull<u8>,
     layout: alloc::Layout,
     offset: usize,
 }
 
-impl<'a> JitMemory<'a> {
+impl JitMemory {
     pub fn new(
         prog: &[u8],
         helpers: &HashMap<u32, ebpf::Helper>,
         use_mbuff: bool,
         update_data_ptr: bool,
-    ) -> Result<JitMemory<'a>, Error> {
+    ) -> Result<JitMemory, Error> {
         let layout;
 
         // Allocate the appropriately sized memory.
@@ -71,9 +73,7 @@ impl<'a> JitMemory<'a> {
 
             // Protect it.
             libc::mprotect(ptr.cast(), size, libc::PROT_EXEC | libc::PROT_WRITE);
-
-            // Convert to a slice.
-            std::slice::from_raw_parts_mut(ptr, size)
+            NonNull::new_unchecked(ptr)
         };
 
         let mut mem = JitMemory {
@@ -90,33 +90,35 @@ impl<'a> JitMemory<'a> {
     }
 
     pub fn get_prog(&self) -> MachineCode {
-        unsafe { mem::transmute(self.contents.as_ptr()) }
+        unsafe { mem::transmute(self.contents) }
     }
 }
 
-impl Index<usize> for JitMemory<'_> {
+impl Index<usize> for JitMemory {
     type Output = u8;
 
     fn index(&self, _index: usize) -> &u8 {
-        &self.contents[_index]
+        let data = unsafe { slice::from_raw_parts(self.contents.as_ptr(), self.layout.size()) };
+        &data[_index]
     }
 }
 
-impl IndexMut<usize> for JitMemory<'_> {
+impl IndexMut<usize> for JitMemory {
     fn index_mut(&mut self, _index: usize) -> &mut u8 {
-        &mut self.contents[_index]
+        let data = unsafe { slice::from_raw_parts_mut(self.contents.as_ptr(), self.layout.size()) };
+        &mut data[_index]
     }
 }
 
-impl Drop for JitMemory<'_> {
+impl Drop for JitMemory {
     fn drop(&mut self) {
         unsafe {
-            alloc::dealloc(self.contents.as_mut_ptr(), self.layout);
+            alloc::dealloc(self.contents.as_ptr(), self.layout);
         }
     }
 }
 
-impl std::fmt::Debug for JitMemory<'_> {
+impl std::fmt::Debug for JitMemory {
     fn fmt(&self, fmt: &mut Formatter) -> Result<(), FormatterError> {
         fmt.write_str("JIT contents: [")?;
         fmt.write_str(" ] | ")?;
