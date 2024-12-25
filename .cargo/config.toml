@@ -5,8 +5,8 @@
 linker = "aarch64-linux-gnu-gcc"
 runner = "qemu-aarch64"
 
-[unstable]
-codegen-backend = true
+# [unstable]
+# codegen-backend = true
 
-[profile.dev]
-codegen-backend = "cranelift"
+# [profile.dev]
+# codegen-backend = "cranelift"
