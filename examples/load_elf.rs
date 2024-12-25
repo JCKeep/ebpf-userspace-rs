@@ -44,7 +44,7 @@ use rbpf::helpers;
 // with `objdump -s -j .classifier load_elf__block_a_port.o`.
 //
 // Once the bytecode has been edited, we can load the bytecode directly from the ELF object file.
-
+#[rustfmt::skip]
 fn main() {
 
     let filename = "examples/load_elf__block_a_port.o";

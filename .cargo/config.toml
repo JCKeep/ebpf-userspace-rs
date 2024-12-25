@@ -1,0 +1,12 @@
+[build]
+# rustc-wrapper = "/home/jckeep/.cargo/bin/sccache"
+
+[target.aarch64-unknown-linux-musl]
+linker = "aarch64-linux-gnu-gcc"
+runner = "qemu-aarch64"
+
+[unstable]
+codegen-backend = true
+
+[profile.dev]
+codegen-backend = "cranelift"

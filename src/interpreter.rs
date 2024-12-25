@@ -17,21 +17,21 @@ fn check_mem(
     mbuff: &[u8],
     mem: &[u8],
     stack: &[u8],
-    allowed_memory: &HashSet<u64>
+    allowed_memory: &HashSet<u64>,
 ) -> Result<(), Error> {
     if let Some(addr_end) = addr.checked_add(len as u64) {
-      if mbuff.as_ptr() as u64 <= addr && addr_end <= mbuff.as_ptr() as u64 + mbuff.len() as u64 {
-          return Ok(());
-      }
-      if mem.as_ptr() as u64 <= addr && addr_end <= mem.as_ptr() as u64 + mem.len() as u64 {
-          return Ok(());
-      }
-      if stack.as_ptr() as u64 <= addr && addr_end <= stack.as_ptr() as u64 + stack.len() as u64 {
-          return Ok(());
-      }
-      if allowed_memory.contains(&addr) {
-          return Ok(());
-      }
+        if mbuff.as_ptr() as u64 <= addr && addr_end <= mbuff.as_ptr() as u64 + mbuff.len() as u64 {
+            return Ok(());
+        }
+        if mem.as_ptr() as u64 <= addr && addr_end <= mem.as_ptr() as u64 + mem.len() as u64 {
+            return Ok(());
+        }
+        if stack.as_ptr() as u64 <= addr && addr_end <= stack.as_ptr() as u64 + stack.len() as u64 {
+            return Ok(());
+        }
+        if allowed_memory.contains(&addr) {
+            return Ok(());
+        }
     }
 
     Err(Error::new(ErrorKind::Other, format!(
@@ -43,6 +43,7 @@ fn check_mem(
     )))
 }
 
+#[rustfmt::skip]
 pub fn execute_program(
     prog_: Option<&[u8]>,
     mem: &[u8],

@@ -5,6 +5,7 @@ extern crate rbpf;
 use rbpf::disassembler;
 
 // Simply disassemble a program into human-readable instructions.
+#[rustfmt::skip]
 fn main() {
     let prog = &[
         0xb7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

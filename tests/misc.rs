@@ -12,6 +12,7 @@
 //
 // extern crate elf;
 // use std::path::PathBuf;
+#![rustfmt::skip]
 
 extern crate rbpf;
 

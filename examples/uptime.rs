@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 // Copyright 2017 6WIND S.A. <quentin.monnet@6wind.com>
-
 extern crate rbpf;
-use rbpf::helpers;
+use rbpf::{
+    helpers,
+    insn_builder::{Arch, BpfCode, Instruction, IntoBytes, Source},
+};
 
 // The main objectives of this example is to show:
 //
@@ -10,6 +12,7 @@ use rbpf::helpers;
 // * and the use of a helper.
 //
 // The two eBPF programs are independent and are not related to one another.
+#[rustfmt::skip]
 fn main() {
     let prog1 = &[
         0xb4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // mov32 r0, 0
@@ -52,14 +55,14 @@ fn main() {
 
     let time;
 
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     {
         vm.jit_compile().unwrap();
 
         time = unsafe { vm.execute_program_jit().unwrap() };
     }
 
-    #[cfg(any(windows, not(feature = "std")))]
+    #[cfg(any(windows, target_arch = "aarch64", not(feature = "std")))]
     {
         time = vm.execute_program().unwrap();
     }
@@ -72,4 +75,22 @@ fn main() {
 
     println!("Uptime: {:#x} ns == {} days {:02}:{:02}:{:02}, {} ns",
              time, days, hours, minutes, seconds, nanosec);
+    
+    let mut program = BpfCode::new();
+    program
+        .mov(Source::Imm, Arch::X64).set_dst(0x1).set_imm(0).push()
+        .mov(Source::Imm, Arch::X64).set_dst(0x2).set_imm(0).push()
+        .mov(Source::Imm, Arch::X64).set_dst(0x3).set_imm(0).push()
+        .mov(Source::Imm, Arch::X64).set_dst(0x4).set_imm(0).push()
+        .mov(Source::Imm, Arch::X64).set_dst(0x5).set_imm(0).push()
+        .call().set_imm(helpers::BPF_TRACE_PRINTK_IDX as _).push()
+        .exit().push();
+    
+    let prog3 = program.into_bytes();
+    
+    let mut vm = rbpf::EbpfVmNoData::new(Some(prog3)).unwrap();
+    
+    vm.register_helper(helpers::BPF_TRACE_PRINTK_IDX, helpers::bpf_trace_printf).unwrap();
+    
+    vm.execute_program().unwrap();
 }

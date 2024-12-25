@@ -83,12 +83,12 @@ impl<I: Instruction> IntoBytes for &I {
         let buffer = vec![
             self.opt_code_byte(),
             self.get_src() << 4 | self.get_dst(),
-            self.get_off()          as u8,
-            (self.get_off() >> 8)   as u8,
-            self.get_imm()          as u8,
-            (self.get_imm() >> 8)   as u8,
-            (self.get_imm() >> 16)  as u8,
-            (self.get_imm() >> 24)  as u8,
+            self.get_off() as u8,
+            (self.get_off() >> 8) as u8,
+            self.get_imm() as u8,
+            (self.get_imm() >> 8) as u8,
+            (self.get_imm() >> 16) as u8,
+            (self.get_imm() >> 24) as u8,
         ];
         buffer
     }
@@ -97,13 +97,15 @@ impl<I: Instruction> IntoBytes for &I {
 /// BPF instruction stack in byte representation
 #[derive(Default)]
 pub struct BpfCode {
-    instructions: Vec<u8>
+    instructions: Vec<u8>,
 }
 
 impl BpfCode {
     /// creates new empty BPF instruction stack
     pub fn new() -> Self {
-        BpfCode { instructions: vec![] }
+        BpfCode {
+            instructions: vec![],
+        }
     }
 
     /// create ADD instruction
@@ -183,8 +185,8 @@ impl BpfCode {
                 dst: 0x00,
                 src: 0x00,
                 off: 0x00_00,
-                imm: 0x00_00_00_00
-            }
+                imm: 0x00_00_00_00,
+            },
         }
     }
 
@@ -198,8 +200,8 @@ impl BpfCode {
                 dst: 0x00,
                 src: 0x00,
                 off: 0x00_00,
-                imm: 0x00_00_00_00
-            }
+                imm: 0x00_00_00_00,
+            },
         }
     }
 
@@ -235,8 +237,8 @@ impl BpfCode {
                 dst: 0x00,
                 src: 0x00,
                 off: 0x00_00,
-                imm: 0x00_00_00_00
-            }
+                imm: 0x00_00_00_00,
+            },
         }
     }
 
@@ -261,8 +263,8 @@ impl BpfCode {
                 dst: 0x00,
                 src: 0x00,
                 off: 0x00_00,
-                imm: 0x00_00_00_00
-            }
+                imm: 0x00_00_00_00,
+            },
         }
     }
 
@@ -282,8 +284,8 @@ impl BpfCode {
                 dst: 0x00,
                 src: 0x00,
                 off: 0x00_00,
-                imm: 0x00_00_00_00
-            }
+                imm: 0x00_00_00_00,
+            },
         }
     }
 
@@ -296,8 +298,8 @@ impl BpfCode {
                 dst: 0x00,
                 src: 0x00,
                 off: 0x00_00,
-                imm: 0x00_00_00_00
-            }
+                imm: 0x00_00_00_00,
+            },
         }
     }
 
@@ -310,8 +312,8 @@ impl BpfCode {
                 dst: 0x00,
                 src: 0x00,
                 off: 0x00_00,
-                imm: 0x00_00_00_00
-            }
+                imm: 0x00_00_00_00,
+            },
         }
     }
 }
@@ -332,7 +334,7 @@ pub struct Move<'i> {
     src_bit: Source,
     op_bits: OpBits,
     arch_bits: Arch,
-    insn: Insn
+    insn: Insn,
 }
 
 impl<'i> Move<'i> {
@@ -367,7 +369,7 @@ pub enum Source {
     /// immediate field will be used as a source
     Imm = BPF_IMM as isize,
     /// src register will be used as a source
-    Reg = BPF_X as isize
+    Reg = BPF_X as isize,
 }
 
 #[derive(Copy, Clone)]
@@ -384,7 +386,7 @@ enum OpBits {
     Mod = BPF_MOD as isize,
     BitXor = BPF_XOR as isize,
     Mov = BPF_MOV as isize,
-    SignRShift = BPF_ARSH as isize
+    SignRShift = BPF_ARSH as isize,
 }
 
 #[derive(Copy, Clone)]
@@ -393,14 +395,14 @@ pub enum Arch {
     /// 64-bit instructions
     X64 = BPF_ALU64 as isize,
     /// 32-bit instructions
-    X32 = BPF_ALU as isize
+    X32 = BPF_ALU as isize,
 }
 
 /// struct representation of byte swap operation
 pub struct SwapBytes<'i> {
     bpf_code: &'i mut BpfCode,
     endian: Endian,
-    insn: Insn
+    insn: Insn,
 }
 
 impl<'i> SwapBytes<'i> {
@@ -432,7 +434,7 @@ pub enum Endian {
     /// Little endian
     Little = LE as isize,
     /// Big endian
-    Big = BE as isize
+    Big = BE as isize,
 }
 
 /// struct representation of LOAD instructions
@@ -441,7 +443,7 @@ pub struct Load<'i> {
     addressing: Addressing,
     mem_size: MemSize,
     source: u8,
-    insn: Insn
+    insn: Insn,
 }
 
 impl<'i> Load<'i> {
@@ -474,7 +476,7 @@ pub struct Store<'i> {
     bpf_code: &'i mut BpfCode,
     mem_size: MemSize,
     source: u8,
-    insn: Insn
+    insn: Insn,
 }
 
 impl<'i> Store<'i> {
@@ -511,7 +513,7 @@ pub enum MemSize {
     /// 32-bit size
     Word = BPF_W as isize,
     /// 64-bit size
-    DoubleWord = BPF_DW as isize
+    DoubleWord = BPF_DW as isize,
 }
 
 #[derive(Copy, Clone)]
@@ -519,7 +521,7 @@ enum Addressing {
     Imm = BPF_IMM as isize,
     Abs = BPF_ABS as isize,
     Ind = BPF_IND as isize,
-    Mem = BPF_MEM as isize
+    Mem = BPF_MEM as isize,
 }
 
 /// struct representation of JMP instructions
@@ -527,7 +529,7 @@ pub struct Jump<'i> {
     bpf_code: &'i mut BpfCode,
     cond: Cond,
     src_bit: Source,
-    insn: Insn
+    insn: Insn,
 }
 
 impl<'i> Jump<'i> {
@@ -581,13 +583,13 @@ pub enum Cond {
     /// Jump if `<` (signed)
     LowerSigned = BPF_JSLT as isize,
     /// Jump if `<=` (signed)
-    LowerEqualsSigned = BPF_JSLE as isize
+    LowerEqualsSigned = BPF_JSLE as isize,
 }
 
 /// struct representation of CALL instruction
 pub struct FunctionCall<'i> {
     bpf_code: &'i mut BpfCode,
-    insn: Insn
+    insn: Insn,
 }
 
 impl<'i> FunctionCall<'i> {
@@ -616,7 +618,7 @@ impl Instruction for FunctionCall<'_> {
 /// struct representation of EXIT instruction
 pub struct Exit<'i> {
     bpf_code: &'i mut BpfCode,
-    insn: Insn
+    insn: Insn,
 }
 
 impl<'i> Exit<'i> {
@@ -643,6 +645,7 @@ impl Instruction for Exit<'_> {
 }
 
 #[cfg(test)]
+#[rustfmt::skip]
 mod tests {
     #[cfg(test)]
     mod special {

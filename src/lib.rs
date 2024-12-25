@@ -22,17 +22,6 @@ extern crate time;
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-#[cfg(feature = "cranelift")]
-extern crate cranelift_codegen;
-#[cfg(feature = "cranelift")]
-extern crate cranelift_frontend;
-#[cfg(feature = "cranelift")]
-extern crate cranelift_jit;
-#[cfg(feature = "cranelift")]
-extern crate cranelift_module;
-#[cfg(feature = "cranelift")]
-extern crate cranelift_native;
-
 use crate::lib::*;
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -45,7 +34,7 @@ pub mod ebpf;
 pub mod helpers;
 pub mod insn_builder;
 mod interpreter;
-#[cfg(all(not(windows), feature = "std"))]
+#[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
 mod jit;
 #[cfg(not(feature = "std"))]
 mod no_std_error;
@@ -161,7 +150,7 @@ struct MetaBuff {
 pub struct EbpfVmMbuff<'a> {
     prog: Option<&'a [u8]>,
     verifier: Verifier,
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     jit: Option<jit::JitMemory<'a>>,
     #[cfg(feature = "cranelift")]
     cranelift_prog: Option<cranelift::CraneliftProgram>,
@@ -193,7 +182,7 @@ impl<'a> EbpfVmMbuff<'a> {
         Ok(EbpfVmMbuff {
             prog,
             verifier: verifier::check,
-            #[cfg(all(not(windows), feature = "std"))]
+            #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
             jit: None,
             #[cfg(feature = "cranelift")]
             cranelift_prog: None,
@@ -405,7 +394,7 @@ impl<'a> EbpfVmMbuff<'a> {
     ///
     /// vm.jit_compile();
     /// ```
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub fn jit_compile(&mut self) -> Result<(), Error> {
         let prog = match self.prog {
             Some(prog) => prog,
@@ -470,7 +459,7 @@ impl<'a> EbpfVmMbuff<'a> {
     ///     assert_eq!(res, 0x2211);
     /// }
     /// ```
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub unsafe fn execute_program_jit(
         &self,
         mem: &mut [u8],
@@ -961,7 +950,7 @@ impl<'a> EbpfVmFixedMbuff<'a> {
     ///
     /// vm.jit_compile();
     /// ```
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub fn jit_compile(&mut self) -> Result<(), Error> {
         let prog = match self.parent.prog {
             Some(prog) => prog,
@@ -1022,7 +1011,7 @@ impl<'a> EbpfVmFixedMbuff<'a> {
     /// ```
     // This struct redefines the `execute_program_jit()` function, in order to pass the offsets
     // associated with the fixed mbuff.
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub unsafe fn execute_program_jit(&mut self, mem: &'a mut [u8]) -> Result<u64, Error> {
         // If packet data is empty, do not send the address of an empty slice; send a null pointer
         //  as first argument instead, as this is uBPF's behavior (empty packet should not happen
@@ -1406,7 +1395,7 @@ impl<'a> EbpfVmRaw<'a> {
     ///
     /// vm.jit_compile();
     /// ```
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub fn jit_compile(&mut self) -> Result<(), Error> {
         let prog = match self.parent.prog {
             Some(prog) => prog,
@@ -1461,7 +1450,7 @@ impl<'a> EbpfVmRaw<'a> {
     ///     assert_eq!(res, 0x22cc);
     /// }
     /// ```
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub unsafe fn execute_program_jit(&self, mem: &'a mut [u8]) -> Result<u64, Error> {
         let mut mbuff = vec![];
         self.parent.execute_program_jit(mem, &mut mbuff)
@@ -1761,7 +1750,7 @@ impl<'a> EbpfVmNoData<'a> {
     ///
     /// vm.jit_compile();
     /// ```
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub fn jit_compile(&mut self) -> Result<(), Error> {
         self.parent.jit_compile()
     }
@@ -1819,7 +1808,7 @@ impl<'a> EbpfVmNoData<'a> {
     ///     assert_eq!(res, 0x1122);
     /// }
     /// ```
-    #[cfg(all(not(windows), feature = "std"))]
+    #[cfg(all(not(windows), target_arch = "x86_64", feature = "std"))]
     pub unsafe fn execute_program_jit(&self) -> Result<u64, Error> {
         self.parent.execute_program_jit(&mut [])
     }
