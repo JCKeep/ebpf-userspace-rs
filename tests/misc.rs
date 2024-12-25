@@ -12,7 +12,6 @@
 //
 // extern crate elf;
 // use std::path::PathBuf;
-#![rustfmt::skip]
 
 extern crate rbpf;
 
@@ -89,6 +88,7 @@ use rbpf::helpers;
 
 #[test]
 #[cfg(feature = "std")]
+#[rustfmt::skip]
 fn test_vm_block_port() {
     // To load the bytecode from an object file instead of using the hardcoded instructions,
     // use the additional crates commented at the beginning of this file (and also add them to your
@@ -171,6 +171,7 @@ fn test_vm_block_port() {
 
 #[test]
 #[cfg(all(not(windows), feature = "std"))]
+#[rustfmt::skip]
 fn test_jit_block_port() {
     // To load the bytecode from an object file instead of using the hardcoded instructions,
     // use the additional crates commented at the beginning of this file (and also add them to your
@@ -256,6 +257,7 @@ fn test_jit_block_port() {
 
 // Program and memory come from uBPF test ldxh.
 #[test]
+#[rustfmt::skip]
 fn test_vm_mbuff() {
     let prog = &[
         // Load mem from mbuff into R1
@@ -282,6 +284,7 @@ fn test_vm_mbuff() {
 
 // Program and memory come from uBPF test ldxh.
 #[test]
+#[rustfmt::skip]
 fn test_vm_mbuff_with_rust_api() {
     use rbpf::insn_builder::*;
 
@@ -310,6 +313,7 @@ fn test_vm_mbuff_with_rust_api() {
 // Program and memory come from uBPF test ldxh.
 #[test]
 #[cfg(all(not(windows), feature = "std"))]
+#[rustfmt::skip]
 fn test_jit_mbuff() {
     let prog = &[
         // Load mem from mbuff into R1
@@ -357,8 +361,9 @@ fn test_vm_jit_ldabsb() {
     };
 }
 
-#[cfg(all(not(windows), feature = "std"))]
 #[test]
+#[cfg(all(not(windows), feature = "std"))]
+#[rustfmt::skip]
 fn test_vm_jit_ldabsh() {
     let prog = &[
         0x28, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
@@ -379,6 +384,7 @@ fn test_vm_jit_ldabsh() {
 
 #[cfg(all(not(windows), feature = "std"))]
 #[test]
+
 fn test_vm_jit_ldabsw() {
     let prog = &[
         0x20, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
@@ -399,6 +405,7 @@ fn test_vm_jit_ldabsw() {
 
 #[cfg(all(not(windows), feature = "std"))]
 #[test]
+#[rustfmt::skip]
 fn test_vm_jit_ldabsdw() {
     let prog = &[
         0x38, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
@@ -419,6 +426,7 @@ fn test_vm_jit_ldabsdw() {
 
 #[test]
 #[should_panic(expected = "Error: out of bounds memory load (insn #1),")]
+#[rustfmt::skip]
 fn test_vm_err_ldabsb_oob() {
     let prog = &[
         0x38, 0x00, 0x00, 0x00, 0x33, 0x00, 0x00, 0x00,
@@ -436,6 +444,7 @@ fn test_vm_err_ldabsb_oob() {
 
 #[test]
 #[should_panic(expected = "Error: out of bounds memory load (insn #1),")]
+#[rustfmt::skip]
 fn test_vm_err_ldabsb_nomem() {
     let prog = &[
         0x38, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
@@ -449,6 +458,7 @@ fn test_vm_err_ldabsb_nomem() {
 
 #[cfg(all(not(windows), feature = "std"))]
 #[test]
+#[rustfmt::skip]
 fn test_vm_jit_ldindb() {
     let prog = &[
         0xb7, 0x01, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00,
@@ -470,6 +480,7 @@ fn test_vm_jit_ldindb() {
 
 #[cfg(all(not(windows), feature = "std"))]
 #[test]
+#[rustfmt::skip]
 fn test_vm_jit_ldindh() {
     let prog = &[
         0xb7, 0x01, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00,
@@ -491,6 +502,7 @@ fn test_vm_jit_ldindh() {
 
 #[cfg(all(not(windows), feature = "std"))]
 #[test]
+#[rustfmt::skip]
 fn test_vm_jit_ldindw() {
     let prog = &[
         0xb7, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00,
@@ -512,6 +524,7 @@ fn test_vm_jit_ldindw() {
 
 #[cfg(all(not(windows), feature = "std"))]
 #[test]
+#[rustfmt::skip]
 fn test_vm_jit_ldinddw() {
     let prog = &[
         0xb7, 0x01, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
@@ -533,6 +546,7 @@ fn test_vm_jit_ldinddw() {
 
 #[test]
 #[should_panic(expected = "Error: out of bounds memory load (insn #2),")]
+#[rustfmt::skip]
 fn test_vm_err_ldindb_oob() {
     let prog = &[
         0xb7, 0x01, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00,
@@ -551,6 +565,7 @@ fn test_vm_err_ldindb_oob() {
 
 #[test]
 #[should_panic(expected = "Error: out of bounds memory load (insn #2),")]
+#[rustfmt::skip]
 fn test_vm_err_ldindb_nomem() {
     let prog = &[
         0xb7, 0x01, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
